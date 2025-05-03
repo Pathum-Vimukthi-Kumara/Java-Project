@@ -23,10 +23,11 @@ public class OAuthService {
     private final RestTemplate restTemplate = new RestTemplate();
 
     public String getGithubAccessToken(String code) {
-        String url = "https://github.com/oauth/access_token";
+        String url = "https://github.com/login/oauth/access_token";
 
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+        headers.setContentType(MediaType.APPLICATION_JSON);
 
         Map<String, String> body = Map.of(
                 "client_id", clientId,
@@ -37,23 +38,25 @@ public class OAuthService {
 
         HttpEntity<Map<String, String>> request = new HttpEntity<>(body, headers);
 
-        ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
-        if(response==null){
-            throw new RuntimeException();
+        ResponseEntity<Map<String, Object>> response = restTemplate.postForEntity(url, request, (Class<Map<String, Object>>)(Class<?>)Map.class);
+        Map<String, Object> respBody = response != null ? response.getBody() : null;
+        if (respBody == null || !respBody.containsKey("access_token")) {
+            throw new RuntimeException("Failed to obtain GitHub access token");
         }
-        return response.getBody().get("token").toString();
+        return respBody.get("access_token").toString();
     }
 
     public Map<String, Object> getGithubUser(String accessToken) {
         String url = "https://api.github.com/user";
-        url+=accessToken;
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);
-
+        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
         HttpEntity<Void> request = new HttpEntity<>(headers);
-
-        ResponseEntity<Map> response = restTemplate.exchange(url,HttpMethod.POST, request, Map.class);
-
-        return response.getBody();
+        ResponseEntity<Map<String, Object>> response = restTemplate.exchange(url, HttpMethod.GET, request, (Class<Map<String, Object>>)(Class<?>)Map.class);
+        Map<String, Object> respBody = response != null ? response.getBody() : null;
+        if (respBody == null) {
+            throw new RuntimeException("Failed to fetch GitHub user info");
+        }
+        return respBody;
     }
 }

@@ -39,6 +39,10 @@ public class User {
     @Column(nullable = false, name = "is_locked")
     private boolean isLocked;
 
+    public boolean isLocked() {
+        return isLocked;
+    }
+
     @Column(nullable = false, name = "created_at")
     private Timestamp createdAt;
 
